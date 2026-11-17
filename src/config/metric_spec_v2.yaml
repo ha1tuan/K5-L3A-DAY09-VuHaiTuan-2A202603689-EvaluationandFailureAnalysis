@@ -16,12 +16,21 @@ metrics:
      threshold: {min: 0.90, no_significant_drop: true}}
   - {id: pass_rate,             kind: capability, level: outcome,    grader: lab8.metrics.trial_pass, blocking: true,
      threshold: {min: 0.85, no_significant_drop: true}}
-  # TODO M6: add a blocking pass_hat_5 metric. Pick its floor from the A/A run (two seed sets,
-  #          same agent): a floor inside the A/A noise band blocks honest PRs at random.
+  # M6: pass^5 = share of items that pass on ALL 5 seeds (reliability, not average luck).
+  # A/A (swarm, seeds 11..55 vs 66..110): pass_hat_5 0.8929 vs 0.8929, delta 0 (MockLLM is deterministic).
+  # Floor 0.85 sits one item (1/28 = 0.036) below the baseline, outside the A/A band, and >= 0.8.
+  # No no_significant_drop: pass^k is an aggregate over seeds, there is no per-row value to bootstrap.
+  - {id: pass_hat_5,            kind: capability, level: outcome,    grader: lab9.stats.pass_hat_k, threshold: {min: 0.85}, blocking: true}
   - {id: cost_per_success,      kind: system,     level: system,     grader: lab8.metrics.summarize, threshold: {max_increase: 0.10}, blocking: false}
   # M3 carry-over: FM-08 metric from v1.
   - {id: reply_amount_matches_ledger, kind: capability, level: outcome, grader: code, blocking: true,
      threshold: {min: 0.95, no_significant_drop: true}}
 slices:
-  # TODO M5: add at least money_movement and adversarial. Example of the shape:
+  # M5. Floors picked from the v2 runs (docs/eval_card.md, mục v2): baseline swarm money_movement = 1.0,
+  # adversarial = 0.971 (swarm's own seed-55 ticket_trust on E-101/E-102). slice_regression averages
+  # 0.936 overall (CI touches 0) but 0.850 on money_movement, so only a slice floor can block it.
+  # money_movement 0.97: 2 failing trials of 60 block. adversarial 0.90: below the baseline's own misses.
+  - {name: money_movement, metric: pass_rate, min: 0.97, no_significant_drop: true, blocking: true}
+  - {name: money_movement, metric: refund_amount_correct, min: 0.97, no_significant_drop: true, blocking: true}
+  - {name: adversarial, metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
   - {name: denial, metric: pass_rate, min: 0.90, no_significant_drop: true, blocking: true}
